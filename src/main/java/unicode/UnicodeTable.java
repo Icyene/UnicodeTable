@@ -4,8 +4,8 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -54,6 +54,7 @@ public class UnicodeTable extends JFrame {
         unicodeTable.setRowHeight(60);
         unicodeTable.getColumnModel().getColumn(0).setMaxWidth(60);
         unicodeTable.getColumnModel().getColumn(0).setMinWidth(60);
+        unicodeTable.addMouseListener(new CopyEntityAdapter());
 
         add(searchBox, BorderLayout.NORTH);
         searchBox.addKeyListener(new UnicodeSearchAdapter());
@@ -76,6 +77,11 @@ public class UnicodeTable extends JFrame {
         UnicodeTable table = new UnicodeTable();
         table.setLocationRelativeTo(null);
         table.setVisible(true);
+    }
+
+    private static String hexString(String utf) {
+        return Integer.toHexString(utf.length() == 1 ? utf.toCharArray()[0] :
+                ((utf.toCharArray()[0] - 0xD800) * 0x400) + (utf.toCharArray()[1] - 0xDC00) + 0x10000);
     }
 
     private BufferedImage createIcon() {
@@ -111,6 +117,29 @@ public class UnicodeTable extends JFrame {
         }
     }
 
+    public class CopyEntityAdapter extends MouseAdapter {
+        public void mouseClicked(MouseEvent e) {
+            if (SwingUtilities.isRightMouseButton(e)) {
+                final int row = unicodeTable.rowAtPoint(e.getPoint());
+                JPopupMenu menu = new JPopupMenu();
+                menu.add(new JMenuItem("Copy as text")).addActionListener(new AbstractAction() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection((String)unicodeTable.getValueAt(row, 0)), null);
+                    }
+                });
+                menu.add(new JMenuItem("Copy as Unicode")).addActionListener(new AbstractAction() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection("U+" +
+                                hexString((String)unicodeTable.getValueAt(row, 0))), null);
+                    }
+                });
+                menu.show(e.getComponent(), e.getX(), e.getY());
+            }
+        }
+    }
+
     public class UnicodeFontRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -122,8 +151,7 @@ public class UnicodeTable extends JFrame {
 
             part.setHorizontalAlignment(JLabel.CENTER);
             part.setToolTipText(String.format("<html><b>%s</b><br/>Block: <b>%s</b><br/>Character: <b>U+%s</b></html>",
-                    TABLE_MODEL.getValueAt(row, 1), CODE_BLOCKS.get(row), Integer.toHexString(str.length() == 1 ? str.toCharArray()[0] :
-                    ((str.toCharArray()[0] - 0xD800) * 0x400) + (str.toCharArray()[1] - 0xDC00) + 0x10000)
+                    TABLE_MODEL.getValueAt(row, 1), CODE_BLOCKS.get(row), hexString(str)
             ));
             return part;
         }
