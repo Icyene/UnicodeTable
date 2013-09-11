@@ -7,12 +7,8 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
-import java.util.Random;
 
 public class UnicodeTable extends JFrame {
     private static Connection connection;
@@ -26,18 +22,18 @@ public class UnicodeTable extends JFrame {
     }
 
     private static Font UNICODE_FONTS[] = {
-            new Font("Arial MS Unicode", Font.PLAIN, 40),
-            create("Aegean"),
-            create("Aegyptus_R"),
-            create("Akkadian"),
-            create("Analecta"),
-            create("Anatolian"),
-            create("Maya"),
-            create("Musica"),
-            create("Symbola")
+            new Font("Arial MS Unicode", Font.PLAIN, 40), // For Windows
+            font("Aegean"),
+            font("Aegyptus_R"),
+            font("Akkadian"),
+            font("Analecta"),
+            font("Anatolian"),
+            font("Maya"),
+            font("Musica"),
+            font("Symbola")
     };
     private final ArrayList<String> CODE_BLOCKS = new ArrayList<String>(250);
-    private final DefaultTableModel TABLE_MODEL = new DefaultTableModel(null, new String[]{"Character", "Info"}) {
+    private final DefaultTableModel TABLE_MODEL = new DefaultTableModel(null, new String[]{"Glyph", "Description"}) {
         public boolean isCellEditable(int rowIndex, int columnIndex) {
             return false;
         }
@@ -55,7 +51,7 @@ public class UnicodeTable extends JFrame {
         unicodeTable.getColumnModel().getColumn(0).setMaxWidth(60);
         unicodeTable.getColumnModel().getColumn(0).setMinWidth(60);
         unicodeTable.addMouseListener(new CopyEntityAdapter());
-
+        query(""); // Populate with initial values
         add(searchBox, BorderLayout.NORTH);
         searchBox.addKeyListener(new UnicodeSearchAdapter());
         add(new JScrollPane(unicodeTable), BorderLayout.CENTER);
@@ -64,7 +60,7 @@ public class UnicodeTable extends JFrame {
         setIconImage(createIcon());
     }
 
-    private static Font create(String name) {
+    private static Font font(String name) {
         try {
             return Font.createFont(Font.TRUETYPE_FONT, ClassLoader.getSystemResourceAsStream("fonts/" + name + ".ttf")).deriveFont(Font.PLAIN, 40);
         } catch (Exception e) {
@@ -80,41 +76,48 @@ public class UnicodeTable extends JFrame {
     }
 
     private static String hexString(String utf) {
-        return Integer.toHexString(utf.length() == 1 ? utf.toCharArray()[0] :
-                ((utf.toCharArray()[0] - 0xD800) * 0x400) + (utf.toCharArray()[1] - 0xDC00) + 0x10000);
+        char[] surrogate = utf.toCharArray();
+        return Integer.toHexString(surrogate.length == 1 ? surrogate[0] : ((surrogate[0] - 0xD800) * 0x400) + (surrogate[1] - 0xDC00) + 0x10000);
     }
 
     private BufferedImage createIcon() {
-        // Rocket, fuel, maple leaf, train cart
-        String[] ICONS = {"0x26fd", "0x1f680", "0x1f341", "0x1f683"};
         BufferedImage bf = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = bf.createGraphics();
         g.setColor(Color.BLACK);
         g.setFont(UNICODE_FONTS[8].deriveFont(Font.BOLD, 65)); // Symbola
-        g.drawString(new String(Character.toChars(Integer.decode(ICONS[new Random().nextInt(ICONS.length)]))), 0, 50);
+        g.drawString(new String(Character.toChars(Integer.decode("0x1f680"))), 0, 50); // Draw rocket
         return bf;
+    }
+
+    private void query(String text) {
+        TABLE_MODEL.getDataVector().clear();
+        unicodeTable.clearSelection();
+        try {
+            String[] split = text.split(" ");
+            String query = "SELECT * FROM unicode WHERE description";
+            for (int i = 0; i != split.length; i++) {
+                query += " LIKE ?";
+            }
+            query += " LIMIT 200";
+            PreparedStatement ps = connection.prepareStatement(query);
+            for (int i = 0; i != split.length; i++) {
+                ps.setString(i + 1, "%" + split[i].replaceAll("[^A-Za-z0-9]", "") + "%");
+            }
+            ResultSet chars = ps.executeQuery();
+            while (chars.next()) {
+                CODE_BLOCKS.add(chars.getString(3));
+                TABLE_MODEL.addRow(new Object[]{new String(Character.toChars(chars.getInt(1))), chars.getString(2)});
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        TABLE_MODEL.fireTableDataChanged(); // Repaints table
     }
 
     public class UnicodeSearchAdapter extends KeyAdapter {
         @Override
         public void keyReleased(KeyEvent e) {
-            TABLE_MODEL.getDataVector().clear();
-            unicodeTable.clearSelection();
-            try {
-                // Be happy, Bobby tables.
-                ResultSet chars = connection.createStatement().executeQuery("SELECT * FROM unicode WHERE description LIKE '%" + searchBox.getText() + "%'");
-                for (int i = 0; i != 500; i++) { // There is a limit to what is reasonable. I believe this is to be it.
-                    if (chars.next()) {
-                        CODE_BLOCKS.add(chars.getString(1));
-                        TABLE_MODEL.addRow(new Object[]{new String(Character.toChars(Integer.decode("0x" + chars.getString(2)))), chars.getString(3)});
-                    } else {
-                        break;
-                    }
-                }
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
-            TABLE_MODEL.fireTableDataChanged(); // Repaints table
+            query(searchBox.getText());
         }
     }
 
@@ -133,6 +136,12 @@ public class UnicodeTable extends JFrame {
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         toClipboard("U+" + hexString((String) unicodeTable.getValueAt(row, 0)));
+                    }
+                });
+                menu.add(new JMenuItem("Copy as HTML entity")).addActionListener(new AbstractAction() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        toClipboard("&#x" + hexString((String) unicodeTable.getValueAt(row, 0)) + ';');
                     }
                 });
                 menu.show(e.getComponent(), e.getX(), e.getY());
