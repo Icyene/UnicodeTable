@@ -6,11 +6,13 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Random;
 
 public class UnicodeTable extends JFrame {
     private static Connection connection;
@@ -58,6 +60,7 @@ public class UnicodeTable extends JFrame {
         add(new JScrollPane(unicodeTable), BorderLayout.CENTER);
         pack();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setIconImage(createIcon());
     }
 
     private static Font create(String name) {
@@ -73,6 +76,17 @@ public class UnicodeTable extends JFrame {
         UnicodeTable table = new UnicodeTable();
         table.setLocationRelativeTo(null);
         table.setVisible(true);
+    }
+
+    private BufferedImage createIcon() {
+        // Rocket, fuel, maple leaf, train cart
+        String[] ICONS = {"0x26fd", "0x1f680", "0x1f341", "0x1f683"};
+        BufferedImage bf = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = bf.createGraphics();
+        g.setColor(Color.BLACK);
+        g.setFont(UNICODE_FONTS[8].deriveFont(Font.BOLD, 65)); // Symbola
+        g.drawString(new String(Character.toChars(Integer.decode(ICONS[new Random().nextInt(ICONS.length)]))), 0, 50);
+        return bf;
     }
 
     public class UnicodeSearchAdapter extends KeyAdapter {
@@ -103,7 +117,8 @@ public class UnicodeTable extends JFrame {
             JLabel part = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             String str = (String) value;
             for (Font f : UNICODE_FONTS)
-                if (f != null && f.canDisplayUpTo(str) == -1) part.setFont(f); // -1 means entire String can be displayed
+                if (f != null && f.canDisplayUpTo(str) == -1)
+                    part.setFont(f); // -1 means entire String can be displayed
 
             part.setHorizontalAlignment(JLabel.CENTER);
             part.setToolTipText(String.format("<html><b>%s</b><br/>Block: <b>%s</b><br/>Character: <b>U+%s</b></html>",
