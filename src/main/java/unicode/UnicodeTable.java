@@ -46,7 +46,7 @@ public class UnicodeTable extends JFrame {
     private JTextField searchBox = new JTextField();
 
     public UnicodeTable() {
-        super("Unicode Character Search");
+        super("Unicode Character Search Engine");
         setLayout(new BorderLayout());
 
         unicodeTable.setFillsViewportHeight(true);
@@ -101,8 +101,9 @@ public class UnicodeTable extends JFrame {
             TABLE_MODEL.getDataVector().clear();
             unicodeTable.clearSelection();
             try {
+                // Be happy, Bobby tables.
                 ResultSet chars = connection.createStatement().executeQuery("SELECT * FROM unicode WHERE description LIKE '%" + searchBox.getText() + "%'");
-                for (int i = 0; i != 500; i++) {
+                for (int i = 0; i != 500; i++) { // There is a limit to what is reasonable. I believe this is to be it.
                     if (chars.next()) {
                         CODE_BLOCKS.add(chars.getString(1));
                         TABLE_MODEL.addRow(new Object[]{new String(Character.toChars(Integer.decode("0x" + chars.getString(2)))), chars.getString(3)});
@@ -125,18 +126,21 @@ public class UnicodeTable extends JFrame {
                 menu.add(new JMenuItem("Copy as text")).addActionListener(new AbstractAction() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection((String)unicodeTable.getValueAt(row, 0)), null);
+                        toClipboard((String) unicodeTable.getValueAt(row, 0));
                     }
                 });
                 menu.add(new JMenuItem("Copy as Unicode")).addActionListener(new AbstractAction() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection("U+" +
-                                hexString((String)unicodeTable.getValueAt(row, 0))), null);
+                        toClipboard("U+" + hexString((String) unicodeTable.getValueAt(row, 0)));
                     }
                 });
                 menu.show(e.getComponent(), e.getX(), e.getY());
             }
+        }
+
+        private void toClipboard(String text) {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
         }
     }
 
