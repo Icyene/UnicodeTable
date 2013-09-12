@@ -1,4 +1,6 @@
-UnicodeTable
+&#x1f680; UnicodeTable
 ============
 
-An Unicode character search engine bundled in a simple UI.
+A Unicode search engine bundled in an intuitive UI, for when Unicode makes you feel small.
+
+CJK characters are omitted.
