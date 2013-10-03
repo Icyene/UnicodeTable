@@ -27,7 +27,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>unicode.UnicodeTable</mainClass>
+                            <mainClass>tk.ivybits.unicode.UnicodeTable</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

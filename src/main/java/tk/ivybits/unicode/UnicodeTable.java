@@ -1,4 +1,4 @@
-package unicode;
+package tk.ivybits.unicode;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -94,7 +94,7 @@ public class UnicodeTable extends JFrame {
         unicodeTable.clearSelection();
         try {
             String[] split = text.split(" ");
-            String query = "SELECT * FROM unicode WHERE description";
+            String query = "SELECT char, description, block FROM unicode WHERE description";
             for (int i = 0; i != split.length; i++) {
                 query += " LIKE ?";
             }
