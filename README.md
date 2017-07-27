@@ -3,8 +3,8 @@
 
 A Unicode search engine bundled in an intuitive UI, for when Unicode makes you feel small.
 
-![Unicode Table](https://dl.dropboxusercontent.com/u/67341745/ivybits/UnicodeTable.png)
+![Unicode Table](https://xyene.dmuser.ml/assets/UnicodeTable.png)
 
 CJK characters are omitted.
 
-Get it [here](http://ci.ivybits.tk/job/Unicode%20Search%20Engine/).
+Get it [here](https://ci.tbrindus.ca/job/Unicode%20Search%20Engine/).
